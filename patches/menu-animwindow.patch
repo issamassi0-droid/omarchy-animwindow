@@ -1,0 +1,38 @@
+--- a/Menu.qml	2026-09-16 14:05:34.137068266 +0100
++++ b/Menu.qml	2026-09-16 14:05:43.882621477 +0100
+@@ -1016,7 +1016,7 @@
+   }
+   PanelWindow {
+     id: panel
+-    visible: root.opened && root.rowsLoaded
++    visible: (root.opened && root.rowsLoaded) || anim.closing
+     anchors { top: true; bottom: true; left: true; right: true }
+     color: "transparent"
+     WlrLayershell.namespace: "omarchy-menu"
+@@ -1042,8 +1042,11 @@
+     }
+     onVisibleChanged: if (!visible) { cardTop = -1; maxRowsHeight = -1 }
+ 
++    AnimWindow { id: anim; open: root.opened && root.rowsLoaded }
++
+     Rectangle {
+       anchors.fill: parent
++      opacity: anim.openness
+       color: root.scrim
+     }
+ 
+@@ -1054,11 +1057,13 @@
+ 
+     BorderSurface {
+       id: card
++      opacity: anim.openness
+       width: root.cardWidth
+       height: Math.min(root.cardHeight, panel.height - Style.gapsOut - panel.effectiveCardTop)
+       radius: root.cornerRadius
+       anchors.horizontalCenter: parent.horizontalCenter
+-      y: panel.effectiveCardTop
++      y: panel.effectiveCardTop + (1 - anim.openness) * anim.slideY
++      scale: anim.startScale + anim.openness * (1 - anim.startScale)
+       color: root.background
+       borderSpec: root.borderSpec
+       padding: root.contentMargin

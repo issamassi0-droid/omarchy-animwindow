@@ -1,0 +1,61 @@
+--- a/PopupCard.qml	2026-09-16 14:40:29.864466988 +0100
++++ b/PopupCard.qml	2026-09-16 14:57:39.308770154 +0100
+@@ -2,6 +2,7 @@
+ import Quickshell
+ import Quickshell.Hyprland
+ import qs.Commons
++import qs.Ui
+ 
+ PopupWindow {
+   id: root
+@@ -64,11 +65,27 @@
+ 
+   default property alias contentItem: contentHolder.children
+ 
+-  visible: open || card.opacity > 0
++  visible: root.open || anim.closing
+   color: "transparent"
+   implicitWidth: contentWidth
+   implicitHeight: contentHeight
+ 
++  AnimWindow { id: anim; open: root.open }
++
++  readonly property real popupScale: anim.startScale + anim.openness * (1 - anim.startScale)
++  readonly property real popupOriginX: root.bar && (root.bar.position === "top" || root.bar.position === "bottom")
++    ? card.width / 2
++    : (root.bar && root.bar.position === "right" ? card.width : 0)
++  readonly property real popupOriginY: root.bar && (root.bar.position === "top" || root.bar.position === "bottom")
++    ? (root.bar.position === "bottom" ? card.height : 0)
++    : (root.bar && root.bar.position === "right" ? card.height / 2 : 0)
++  readonly property real popupSlideX: root.bar && (root.bar.position === "left" || root.bar.position === "right")
++    ? (root.bar.position === "left" ? -(1 - anim.openness) * anim.slideY : (1 - anim.openness) * anim.slideY)
++    : 0
++  readonly property real popupSlideY: root.bar && (root.bar.position === "top" || root.bar.position === "bottom")
++    ? (root.bar.position === "top" ? -(1 - anim.openness) * anim.slideY : (1 - anim.openness) * anim.slideY)
++    : 0
++
+   onOpenChanged: {
+     if (!bar) return
+     if (open) bar.requestPopout(coordinatorKey)
+@@ -154,11 +171,17 @@
+     borderSpec: root.borderSpec
+     padding: root.padding
+     radius: Style.cornerRadius
+-    opacity: root.open ? 1.0 : 0
++    opacity: anim.openness
+ 
+-    Behavior on opacity {
+-      NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+-    }
++    transform: [
++      Translate { x: root.popupSlideX; y: root.popupSlideY },
++      Scale {
++        xScale: root.popupScale
++        yScale: root.popupScale
++        origin.x: root.popupOriginX
++        origin.y: root.popupOriginY
++      }
++    ]
+ 
+     Item {
+       id: contentHolder

@@ -1,0 +1,42 @@
+--- a/ConfirmDialog.qml	2026-09-16 15:09:22.574448673 +0100
++++ b/ConfirmDialog.qml	2026-09-16 15:09:22.576510963 +0100
+@@ -1,5 +1,6 @@
+ import QtQuick
+ import qs.Commons
++import qs.Ui
+ 
+ Item {
+   id: root
+@@ -38,10 +39,13 @@
+     return false
+   }
+ 
+-  visible: opened
++  visible: root.opened || anim.closing
++
++  AnimWindow { id: anim; open: root.opened }
+ 
+   Rectangle {
+     anchors.fill: parent
++    opacity: anim.openness
+     color: root.scrim
+ 
+     MouseArea { anchors.fill: parent; onClicked: root.canceled() }
+@@ -57,6 +61,17 @@
+       borderSpec: Border.flat(root.selectedText, Style.normalBorderWidth)
+       padding: Style.space(18)
+       radius: root.cornerRadius
++      opacity: anim.openness
++
++      transform: [
++          Translate { y: -(1 - anim.openness) * anim.slideY },
++          Scale {
++              xScale: anim.startScale + anim.openness * (1 - anim.startScale)
++              yScale: anim.startScale + anim.openness * (1 - anim.startScale)
++              origin.x: card.width / 2
++              origin.y: card.height / 2
++          }
++      ]
+ 
+       MouseArea { anchors.fill: parent; onClicked: {} }
+ 

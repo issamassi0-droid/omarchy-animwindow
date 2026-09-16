@@ -1,0 +1,164 @@
+#!/bin/bash
+
+# omarchy-animwindow: install/remove the AnimWindow quickshell component and
+# the animation patches for the shared shell surfaces (main menu, PopupCard
+# bar popups, KeyboardPanel panels, ConfirmDialog overlays). Because the
+# animation lives in shared qs.Ui components, any plugin - current or future -
+# that builds on them gets the animation automatically ("dynamic for all
+# plugins to be installed").
+#
+# The Omarchy shell only resolves `import qs.Ui` from the package directory
+# (/usr/share/omarchy/shell/Ui), so a component that lives under
+# ~/.config/omarchy cannot be imported on its own. This script exposes the
+# user file to the shell through a symlink plus a qmldir registration, and
+# applies reversible patches that use AnimWindow in the shared components.
+#
+#   omarchy-animwindow install     # add symlink + qmldir + all patches
+#   omarchy-animwindow uninstall   # revert everything, restart shell
+#   omarchy-animwindow status      # show current state
+#
+# Package-file changes are undone by `uninstall` and are lost on
+# `omarchy update` — simply re-run `install` afterwards.
+#
+# Run as plain user; elevation defaults to sudo and can be overridden
+# (e.g. SUDO=pkexec omarchy-animwindow install).
+
+set -euo pipefail
+
+declare -r PACKAGE_UI="/usr/share/omarchy/shell/Ui"
+declare -r PACKAGE_QMLDIR="$PACKAGE_UI/qmldir"
+declare -r PATCH_DIR="$HOME/.config/omarchy/patches"
+declare -r LINK="$PACKAGE_UI/animwindow.qml"
+declare -r USER_FILE="$HOME/.config/omarchy/shell/Ui/animwindow.qml"
+declare -r REGISTRATION='AnimWindow 1.0 animwindow.qml'
+declare -r ELEVATE="${SUDO:-sudo}"
+
+declare -r MENU_PATCH="$PATCH_DIR/menu-animwindow.patch"
+declare -r POPUP_PATCH="$PATCH_DIR/popupcard-animwindow.patch"
+declare -r KEYBOARD_PATCH="$PATCH_DIR/keyboardpanel-animwindow.patch"
+declare -r DIALOG_PATCH="$PATCH_DIR/confirmdialog-animwindow.patch"
+
+declare -r MENU_MARKER='AnimWindow { id: anim; open: root.opened && root.rowsLoaded }'
+declare -r POPUP_MARKER='AnimWindow { id: anim; open: root.open }'
+declare -r KEYBOARD_MARKER='AnimWindow { id: anim; open: root.open }'
+declare -r DIALOG_MARKER='AnimWindow { id: anim; open: root.opened }'
+
+usage() {
+  echo "usage: omarchy-animwindow {install|uninstall|status}" >&2
+  exit 1
+}
+
+require_user_file() {
+  if [[ ! -f "$USER_FILE" ]]; then
+    echo "error: $USER_FILE does not exist" >&2
+    exit 1
+  fi
+}
+
+component_installed() {
+  [[ -L "$LINK" ]] && $ELEVATE grep -qF "$REGISTRATION" "$PACKAGE_QMLDIR"
+}
+
+patch_state() {
+  local file="$1"
+  local marker="$2"
+  if $ELEVATE grep -qF "$marker" "$file"; then
+    echo "applied"
+  else
+    echo "pristine"
+  fi
+}
+
+apply_patch() {
+  local target="$1"
+  local patch="$2"
+  if [[ ! -f "$patch" ]]; then
+    echo "error: $patch missing" >&2
+    exit 1
+  fi
+  $ELEVATE patch --forward -p1 --directory="$target" < "$patch"
+}
+
+revert_patch() {
+  local target="$1"
+  local patch="$2"
+  $ELEVATE patch --forward -p1 -R --directory="$target" < "$patch"
+}
+
+install_for() {
+  local label="$1"
+  local file="$2"
+  local marker="$3"
+  local dir="$4"
+  local patch="$5"
+  if [[ "$(patch_state "$file" "$marker")" == "applied" ]]; then
+    echo "$label already patched"
+  else
+    apply_patch "$dir" "$patch"
+    echo "$label patched"
+  fi
+}
+
+revert_for() {
+  local label="$1"
+  local file="$2"
+  local marker="$3"
+  local dir="$4"
+  local patch="$5"
+  if [[ "$(patch_state "$file" "$marker")" == "applied" ]]; then
+    revert_patch "$dir" "$patch"
+    echo "$label patch reverted"
+  else
+    echo "$label already pristine"
+  fi
+}
+
+cmd_install() {
+  require_user_file
+  if component_installed; then
+    echo "component already installed"
+  else
+    $ELEVATE ln -sf "$USER_FILE" "$LINK"
+    if ! $ELEVATE grep -qF "$REGISTRATION" "$PACKAGE_QMLDIR"; then
+      echo "$REGISTRATION" | $ELEVATE tee -a "$PACKAGE_QMLDIR" >/dev/null
+    fi
+    echo "component installed"
+  fi
+  install_for "menu"          "/usr/share/omarchy/shell/plugins/menu/Menu.qml"       "$MENU_MARKER"    "/usr/share/omarchy/shell/plugins/menu" "$MENU_PATCH"
+  install_for "popup"         "$PACKAGE_UI/PopupCard.qml"                             "$POPUP_MARKER"   "$PACKAGE_UI" "$POPUP_PATCH"
+  install_for "keyboard panel" "$PACKAGE_UI/KeyboardPanel.qml"                       "$KEYBOARD_MARKER" "$PACKAGE_UI" "$KEYBOARD_PATCH"
+  install_for "confirm dialog" "$PACKAGE_UI/ConfirmDialog.qml"                       "$DIALOG_MARKER"  "$PACKAGE_UI" "$DIALOG_PATCH"
+  omarchy restart shell
+  echo "AnimWindow installed (menu, PopupCard, KeyboardPanel, ConfirmDialog)."
+}
+
+cmd_uninstall() {
+  revert_for "menu"          "/usr/share/omarchy/shell/plugins/menu/Menu.qml"       "$MENU_MARKER"    "/usr/share/omarchy/shell/plugins/menu" "$MENU_PATCH"
+  revert_for "popup"         "$PACKAGE_UI/PopupCard.qml"                             "$POPUP_MARKER"   "$PACKAGE_UI" "$POPUP_PATCH"
+  revert_for "keyboard panel" "$PACKAGE_UI/KeyboardPanel.qml"                       "$KEYBOARD_MARKER" "$PACKAGE_UI" "$KEYBOARD_PATCH"
+  revert_for "confirm dialog" "$PACKAGE_UI/ConfirmDialog.qml"                       "$DIALOG_MARKER"  "$PACKAGE_UI" "$DIALOG_PATCH"
+  if component_installed; then
+    $ELEVATE rm -f "$LINK"
+    $ELEVATE sed -i "/^${REGISTRATION//\//\\/}$/d" "$PACKAGE_QMLDIR"
+    echo "component removed"
+  else
+    echo "component absent"
+  fi
+  omarchy restart shell
+  echo "AnimWindow removed."
+}
+
+cmd_status() {
+  echo "component: $(component_installed && echo installed || echo absent)"
+  echo "menu patch:          $(patch_state /usr/share/omarchy/shell/plugins/menu/Menu.qml "$MENU_MARKER")"
+  echo "popup patch:         $(patch_state "$PACKAGE_UI/PopupCard.qml" "$POPUP_MARKER")"
+  echo "keyboard panel patch: $(patch_state "$PACKAGE_UI/KeyboardPanel.qml" "$KEYBOARD_MARKER")"
+  echo "confirm dialog patch: $(patch_state "$PACKAGE_UI/ConfirmDialog.qml" "$DIALOG_MARKER")"
+}
+
+case "${1:-}" in
+  install) cmd_install ;;
+  uninstall) cmd_uninstall ;;
+  status) cmd_status ;;
+  *) usage ;;
+esac

@@ -1,0 +1,56 @@
+--- a/KeyboardPanel.qml	2026-09-16 15:08:05.946013544 +0100
++++ b/KeyboardPanel.qml	2026-09-16 15:08:22.885795780 +0100
+@@ -2,6 +2,7 @@
+ import Quickshell
+ import Quickshell.Wayland
+ import qs.Commons
++import qs.Ui
+ 
+ // Layer-shell popup attached to a bar widget icon, designed for
+ // click-driven AND keyboard-driven panels (e.g. SUPER+CTRL+W summon).
+@@ -78,10 +79,21 @@
+   // --- screen + lifetime ---------------------------------------------------
+ 
+   screen: anchorWindow ? anchorWindow.screen : null
+-  visible: open || card.opacity > 0 || popoutSwitching
++  visible: root.open || anim.closing || root.popoutSwitching
+   color: "transparent"
+   exclusionMode: ExclusionMode.Ignore
+ 
++  AnimWindow { id: anim; open: root.open }
++
++  readonly property real popupScale: anim.startScale + anim.openness * (1 - anim.startScale)
++  readonly property real popupOriginX: root.barPos === "left" || root.barPos === "right" ? 0 : card.width / 2
++  readonly property real popupOriginY: root.barPos === "left" || root.barPos === "right"
++    ? card.height / 2 : (root.barPos === "bottom" ? card.height : 0)
++  readonly property real popupSlideX: root.barPos === "left" ? -(1 - anim.openness) * anim.slideY
++    : (root.barPos === "right" ? (1 - anim.openness) * anim.slideY : 0)
++  readonly property real popupSlideY: root.barPos === "top" ? -(1 - anim.openness) * anim.slideY
++    : (root.barPos === "bottom" ? (1 - anim.openness) * anim.slideY : 0)
++
+   WlrLayershell.namespace: "omarchy-keyboard-panel"
+   WlrLayershell.layer: WlrLayer.Overlay
+   // Keyboard focus follows `open` (NOT `visible`). The window remains
+@@ -386,12 +398,17 @@
+     borderSpec: root.borderSpec
+     padding: root.padding
+     radius: Style.cornerRadius
+-    opacity: root.open || root.popoutSwitching ? 1.0 : 0
++    opacity: anim.openness
+ 
+-    Behavior on opacity {
+-      enabled: !root.popoutSwitching && !root.popoutSwitchClosing
+-      NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+-    }
++    transform: [
++      Translate { x: root.popupSlideX; y: root.popupSlideY },
++      Scale {
++        xScale: root.popupScale
++        yScale: root.popupScale
++        origin.x: root.popupOriginX
++        origin.y: root.popupOriginY
++      }
++    ]
+ 
+     // Swallow clicks on the card so they don't bubble to the dismissal
+     // MouseArea behind us.
