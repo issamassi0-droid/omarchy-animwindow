@@ -1,0 +1,20 @@
+--- a/ReminderFlow.qml
++++ b/ReminderFlow.qml
+@@ -117,6 +117,17 @@
+       width: root.cardWidth
+       height: root.cardHeight
+       radius: root.cornerRadius
++      // Accent-tinted top gradient wash, matching oshelf's surface gradient.
++      Rectangle {
++        anchors { top: parent.top; left: parent.left; right: parent.right; margins: 1 }
++        height: Math.min(parent.height, 160)
++        radius: Style.cornerRadius - 1
++        gradient: Gradient {
++          GradientStop { position: 0; color: Util.alpha(Color.accent, 0.085) }
++          GradientStop { position: 1; color: "transparent" }
++        }
++      }
++
+       anchors.centerIn: parent
+       color: root.background
+       borderSpec: root.borderSpec

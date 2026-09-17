@@ -1,0 +1,20 @@
+--- a/ChoiceDialog.qml
++++ b/ChoiceDialog.qml
+@@ -91,6 +91,17 @@
+       padding: Style.space(18)
+       radius: root.cornerRadius
+ 
++      // Accent-tinted top gradient wash, matching oshelf's surface gradient.
++      Rectangle {
++        anchors { top: parent.top; left: parent.left; right: parent.right; margins: 1 }
++        height: Math.min(parent.height, 160)
++        radius: root.cornerRadius - 1
++        gradient: Gradient {
++          GradientStop { position: 0; color: Util.alpha(Color.accent, 0.085) }
++          GradientStop { position: 1; color: "transparent" }
++        }
++      }
++
+       // Swallows clicks that land on the card so they do not reach the scrim
+       // behind it and dismiss the question.
+       MouseArea { anchors.fill: parent; onClicked: {} }

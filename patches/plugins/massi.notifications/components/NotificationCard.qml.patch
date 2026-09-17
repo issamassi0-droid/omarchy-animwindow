@@ -1,0 +1,20 @@
+--- a/components/NotificationCard.qml
++++ b/components/NotificationCard.qml
+@@ -74,6 +74,17 @@
+ 
+   HoverHandler { id: hoverTracker }
+ 
++  // Accent-tinted top gradient wash, matching oshelf's surface gradient.
++  Rectangle {
++    anchors { top: parent.top; left: parent.left; right: parent.right; margins: 1 }
++    height: Math.min(parent.height, 160)
++    radius: cornerRadius - 1
++    gradient: Gradient {
++      GradientStop { position: 0; color: Util.alpha(Color.accent, 0.085) }
++      GradientStop { position: 1; color: "transparent" }
++    }
++  }
++
+   MouseArea {
+     anchors.fill: parent
+     cursorShape: Qt.PointingHandCursor

@@ -1,0 +1,20 @@
+--- a/ConfirmDialog.qml
++++ b/ConfirmDialog.qml
+@@ -61,6 +61,17 @@
+       borderSpec: Border.flat(root.selectedText, Style.normalBorderWidth)
+       padding: Style.space(18)
+       radius: root.cornerRadius
++      // Accent-tinted top gradient wash, matching oshelf's surface gradient.
++      Rectangle {
++        anchors { top: parent.top; left: parent.left; right: parent.right; margins: 1 }
++        height: Math.min(parent.height, 160)
++        radius: Style.cornerRadius - 1
++        gradient: Gradient {
++          GradientStop { position: 0; color: Util.alpha(Color.accent, 0.085) }
++          GradientStop { position: 1; color: "transparent" }
++        }
++      }
++
+       opacity: anim.openness
+ 
+       transform: [

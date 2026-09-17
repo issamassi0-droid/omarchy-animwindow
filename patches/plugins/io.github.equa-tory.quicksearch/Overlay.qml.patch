@@ -1,0 +1,20 @@
+--- a/Overlay.qml
++++ b/Overlay.qml
+@@ -230,6 +230,17 @@
+       borderSpec: Border.surfaceSpec("menu", "border", Color.menu.border, Math.max(1, Style.space(2)))
+       padding: Style.spacing.panelPadding
+ 
++      // Accent-tinted top gradient wash, matching oshelf's surface gradient.
++      Rectangle {
++        anchors { top: parent.top; left: parent.left; right: parent.right; margins: 1 }
++        height: Math.min(parent.height, 160)
++        radius: Style.cornerRadius - 1
++        gradient: Gradient {
++          GradientStop { position: 0; color: Util.alpha(Color.accent, 0.085) }
++          GradientStop { position: 1; color: "transparent" }
++        }
++      }
++
+       // Swallow clicks so they don't fall through to the dismiss layer.
+       MouseArea { anchors.fill: parent; onClicked: {} }
+ 

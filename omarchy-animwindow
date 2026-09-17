@@ -1,17 +1,24 @@
 #!/bin/bash
 
-# omarchy-animwindow: install/remove the AnimWindow quickshell component and
-# the animation patches for the shared shell surfaces (main menu, PopupCard
-# bar popups, KeyboardPanel panels, ConfirmDialog overlays). Because the
-# animation lives in shared qs.Ui components, any plugin - current or future -
-# that builds on them gets the animation automatically ("dynamic for all
-# plugins to be installed").
+# omarchy-animwindow: install/remove the AnimWindow quickshell component plus
+# the oshelf-style "gradient wash" on the shared shell surfaces (main menu,
+# PopupCard bar popups, KeyboardPanel panels, ConfirmDialog overlays, OSD,
+# reminder cards) and on installed third-party plugins.
+#
+# Because the AnimWindow call lives in shared qs.Ui components, any plugin -
+# current or future - that builds on PopupCard/KeyboardPanel/ConfirmDialog gets
+# the animation automatically. The gradient wash is patched onto those same
+# shared surfaces, so all of them inherit the oshelf look too. Individual
+# plugins that draw their own cards (plugin-manager, notifications, quicksearch,
+# omarchy-find, massi.menu) are patched per-plugin, dynamically, whenever the
+# plugin is installed.
 #
 # The Omarchy shell only resolves `import qs.Ui` from the package directory
 # (/usr/share/omarchy/shell/Ui), so a component that lives under
 # ~/.config/omarchy cannot be imported on its own. This script exposes the
 # user file to the shell through a symlink plus a qmldir registration, and
-# applies reversible patches that use AnimWindow in the shared components.
+# applies reversible patches that use AnimWindow + the gradient in the shared
+# components.
 #
 #   omarchy-animwindow install     # add symlink + qmldir + all patches
 #   omarchy-animwindow uninstall   # revert everything, restart shell
@@ -25,23 +32,25 @@
 
 set -euo pipefail
 
-declare -r PACKAGE_UI="/usr/share/omarchy/shell/Ui"
+declare -r SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+declare -r PKG_ROOT="${OMARCHY_PACKAGE_ROOT:-/usr/share/omarchy/shell}"
+declare -r PACKAGE_UI="$PKG_ROOT/Ui"
 declare -r PACKAGE_QMLDIR="$PACKAGE_UI/qmldir"
-declare -r PATCH_DIR="$HOME/.config/omarchy/patches"
+declare -r PLUGINS_ROOT="${OMARCHY_PLUGINS_ROOT:-$HOME/.config/omarchy/plugins}"
+declare -r PATCH_DIR="${OMARCHY_PATCH_DIR:-$HOME/.config/omarchy/patches}"
 declare -r LINK="$PACKAGE_UI/animwindow.qml"
 declare -r USER_FILE="$HOME/.config/omarchy/shell/Ui/animwindow.qml"
 declare -r REGISTRATION='AnimWindow 1.0 animwindow.qml'
-declare -r ELEVATE="${SUDO:-sudo}"
+declare -r ELEVATE="${SUDO-sudo}"
+declare -r GRAD_MARKER='Util.alpha(Color.accent, 0.085)'
 
-declare -r MENU_PATCH="$PATCH_DIR/menu-animwindow.patch"
-declare -r POPUP_PATCH="$PATCH_DIR/popupcard-animwindow.patch"
-declare -r KEYBOARD_PATCH="$PATCH_DIR/keyboardpanel-animwindow.patch"
-declare -r DIALOG_PATCH="$PATCH_DIR/confirmdialog-animwindow.patch"
-
-declare -r MENU_MARKER='AnimWindow { id: anim; open: root.opened && root.rowsLoaded }'
-declare -r POPUP_MARKER='AnimWindow { id: anim; open: root.open }'
-declare -r KEYBOARD_MARKER='AnimWindow { id: anim; open: root.open }'
-declare -r DIALOG_MARKER='AnimWindow { id: anim; open: root.opened }'
+declare -r MENU_DIR="$PKG_ROOT/plugins/menu"
+declare -r OSD_DIR="$PKG_ROOT/plugins/osd"
+declare -r REMINDER_DIR="$PKG_ROOT/plugins/reminders"
+declare -r MENU_ANIM_MARKER='AnimWindow { id: anim; open: root.opened && root.rowsLoaded }'
+declare -r POPUP_ANIM_MARKER='AnimWindow { id: anim; open: root.open }'
+declare -r KEYBOARD_ANIM_MARKER='AnimWindow { id: anim; open: root.open }'
+declare -r DIALOG_ANIM_MARKER='AnimWindow { id: anim; open: root.opened }'
 
 usage() {
   echo "usage: omarchy-animwindow {install|uninstall|status}" >&2
@@ -59,7 +68,7 @@ component_installed() {
   [[ -L "$LINK" ]] && $ELEVATE grep -qF "$REGISTRATION" "$PACKAGE_QMLDIR"
 }
 
-patch_state() {
+file_state() {
   local file="$1"
   local marker="$2"
   if $ELEVATE grep -qF "$marker" "$file"; then
@@ -70,19 +79,29 @@ patch_state() {
 }
 
 apply_patch() {
-  local target="$1"
+  local dir="$1"
   local patch="$2"
+  local use_elevate="${3:-1}"
   if [[ ! -f "$patch" ]]; then
     echo "error: $patch missing" >&2
     exit 1
   fi
-  $ELEVATE patch --forward -p1 --directory="$target" < "$patch"
+  if [[ "$use_elevate" == "1" ]]; then
+    $ELEVATE patch --forward -p1 --directory="$dir" < "$patch"
+  else
+    patch --forward -p1 --directory="$dir" < "$patch"
+  fi
 }
 
 revert_patch() {
-  local target="$1"
+  local dir="$1"
   local patch="$2"
-  $ELEVATE patch --forward -p1 -R --directory="$target" < "$patch"
+  local use_elevate="${3:-1}"
+  if [[ "$use_elevate" == "1" ]]; then
+    $ELEVATE patch --forward -p1 -R --directory="$dir" < "$patch"
+  else
+    patch --forward -p1 -R --directory="$dir" < "$patch"
+  fi
 }
 
 install_for() {
@@ -91,10 +110,11 @@ install_for() {
   local marker="$3"
   local dir="$4"
   local patch="$5"
-  if [[ "$(patch_state "$file" "$marker")" == "applied" ]]; then
+  local use_elevate="${6:-1}"
+  if [[ "$(file_state "$file" "$marker")" == "applied" ]]; then
     echo "$label already patched"
   else
-    apply_patch "$dir" "$patch"
+    apply_patch "$dir" "$patch" "$use_elevate"
     echo "$label patched"
   fi
 }
@@ -105,16 +125,87 @@ revert_for() {
   local marker="$3"
   local dir="$4"
   local patch="$5"
-  if [[ "$(patch_state "$file" "$marker")" == "applied" ]]; then
-    revert_patch "$dir" "$patch"
+  local use_elevate="${6:-1}"
+  if [[ "$(file_state "$file" "$marker")" == "applied" ]]; then
+    revert_patch "$dir" "$patch" "$use_elevate"
     echo "$label patch reverted"
   else
     echo "$label already pristine"
   fi
 }
 
+# Apply or revert one plugin patch found under $PATCH_DIR/plugins/<id>/.
+# Plugin files live below $PLUGINS_ROOT and are user-owned, so no elevation.
+handle_plugin_patch() {
+  local mode="$1"
+  local patch_file="$2"
+  local rel="${patch_file#"$PATCH_DIR/plugins/"}"
+  rel="${rel%.patch}"
+  local target="$PLUGINS_ROOT/$rel"
+  if [[ ! -f "$target" ]]; then
+    echo "plugin patch $rel: target missing, skipped"
+    return
+  fi
+  local dir="$PLUGINS_ROOT/${rel%%/*}"
+  if [[ "$mode" == "install" ]]; then
+    install_for "plugin $rel" "$target" "$GRAD_MARKER" "$dir" "$patch_file" 0
+  else
+    revert_for "plugin $rel" "$target" "$GRAD_MARKER" "$dir" "$patch_file" 0
+  fi
+}
+
+sync_patches() {
+  mkdir -p "$PATCH_DIR"
+  cp -r "$SCRIPT_DIR/patches/." "$PATCH_DIR/"
+}
+
+install_shared() {
+  # animation (menu, popup, keyboard, dialog)
+  install_for "menu animation"    "$MENU_DIR/Menu.qml"         "$MENU_ANIM_MARKER"    "$MENU_DIR" "$PATCH_DIR/animwindow/menu-animwindow.patch"
+  install_for "popup animation"   "$PACKAGE_UI/PopupCard.qml"  "$POPUP_ANIM_MARKER"   "$PACKAGE_UI" "$PATCH_DIR/animwindow/popupcard-animwindow.patch"
+  install_for "keyboard animation" "$PACKAGE_UI/KeyboardPanel.qml" "$KEYBOARD_ANIM_MARKER" "$PACKAGE_UI" "$PATCH_DIR/animwindow/keyboardpanel-animwindow.patch"
+  install_for "dialog animation"  "$PACKAGE_UI/ConfirmDialog.qml" "$DIALOG_ANIM_MARKER" "$PACKAGE_UI" "$PATCH_DIR/animwindow/confirmdialog-animwindow.patch"
+  # gradient wash on the shared surfaces
+  install_for "menu gradient"   "$MENU_DIR/Menu.qml"           "$GRAD_MARKER" "$MENU_DIR" "$PATCH_DIR/gradient/menu-gradient.patch"
+  install_for "popup gradient"  "$PACKAGE_UI/PopupCard.qml"    "$GRAD_MARKER" "$PACKAGE_UI" "$PATCH_DIR/gradient/popupcard-gradient.patch"
+  install_for "keyboard gradient" "$PACKAGE_UI/KeyboardPanel.qml" "$GRAD_MARKER" "$PACKAGE_UI" "$PATCH_DIR/gradient/keyboardpanel-gradient.patch"
+  install_for "dialog gradient"  "$PACKAGE_UI/ConfirmDialog.qml" "$GRAD_MARKER" "$PACKAGE_UI" "$PATCH_DIR/gradient/confirmdialog-gradient.patch"
+  install_for "osd gradient"     "$OSD_DIR/Osd.qml"            "$GRAD_MARKER" "$OSD_DIR" "$PATCH_DIR/gradient/osd-gradient.patch"
+  install_for "reminder gradient" "$REMINDER_DIR/ReminderFlow.qml" "$GRAD_MARKER" "$REMINDER_DIR" "$PATCH_DIR/gradient/reminderflow-gradient.patch"
+}
+
+revert_shared() {
+  # reverse order: gradient first, then animation
+  revert_for "reminder gradient" "$REMINDER_DIR/ReminderFlow.qml" "$GRAD_MARKER" "$REMINDER_DIR" "$PATCH_DIR/gradient/reminderflow-gradient.patch"
+  revert_for "osd gradient"     "$OSD_DIR/Osd.qml"            "$GRAD_MARKER" "$OSD_DIR" "$PATCH_DIR/gradient/osd-gradient.patch"
+  revert_for "dialog gradient"  "$PACKAGE_UI/ConfirmDialog.qml" "$GRAD_MARKER" "$PACKAGE_UI" "$PATCH_DIR/gradient/confirmdialog-gradient.patch"
+  revert_for "keyboard gradient" "$PACKAGE_UI/KeyboardPanel.qml" "$GRAD_MARKER" "$PACKAGE_UI" "$PATCH_DIR/gradient/keyboardpanel-gradient.patch"
+  revert_for "popup gradient"   "$PACKAGE_UI/PopupCard.qml"    "$GRAD_MARKER" "$PACKAGE_UI" "$PATCH_DIR/gradient/popupcard-gradient.patch"
+  revert_for "menu gradient"    "$MENU_DIR/Menu.qml"           "$GRAD_MARKER" "$MENU_DIR" "$PATCH_DIR/gradient/menu-gradient.patch"
+  revert_for "dialog animation" "$PACKAGE_UI/ConfirmDialog.qml" "$DIALOG_ANIM_MARKER" "$PACKAGE_UI" "$PATCH_DIR/animwindow/confirmdialog-animwindow.patch"
+  revert_for "keyboard animation" "$PACKAGE_UI/KeyboardPanel.qml" "$KEYBOARD_ANIM_MARKER" "$PACKAGE_UI" "$PATCH_DIR/animwindow/keyboardpanel-animwindow.patch"
+  revert_for "popup animation"  "$PACKAGE_UI/PopupCard.qml"    "$POPUP_ANIM_MARKER"   "$PACKAGE_UI" "$PATCH_DIR/animwindow/popupcard-animwindow.patch"
+  revert_for "menu animation"   "$MENU_DIR/Menu.qml"           "$MENU_ANIM_MARKER"    "$MENU_DIR" "$PATCH_DIR/animwindow/menu-animwindow.patch"
+}
+
+install_plugins() {
+  [[ -d "$PATCH_DIR/plugins" ]] || return 0
+  local patch
+  while IFS= read -r patch; do
+    handle_plugin_patch install "$patch"
+  done < <(find "$PATCH_DIR/plugins" -name '*.patch' | sort)
+}
+
+revert_plugins() {
+  local patch
+  while IFS= read -r patch; do
+    handle_plugin_patch uninstall "$patch"
+  done < <(find "$PATCH_DIR/plugins" -name '*.patch' | sort -r)
+}
+
 cmd_install() {
   require_user_file
+  sync_patches
   if component_installed; then
     echo "component already installed"
   else
@@ -124,19 +215,17 @@ cmd_install() {
     fi
     echo "component installed"
   fi
-  install_for "menu"          "/usr/share/omarchy/shell/plugins/menu/Menu.qml"       "$MENU_MARKER"    "/usr/share/omarchy/shell/plugins/menu" "$MENU_PATCH"
-  install_for "popup"         "$PACKAGE_UI/PopupCard.qml"                             "$POPUP_MARKER"   "$PACKAGE_UI" "$POPUP_PATCH"
-  install_for "keyboard panel" "$PACKAGE_UI/KeyboardPanel.qml"                       "$KEYBOARD_MARKER" "$PACKAGE_UI" "$KEYBOARD_PATCH"
-  install_for "confirm dialog" "$PACKAGE_UI/ConfirmDialog.qml"                       "$DIALOG_MARKER"  "$PACKAGE_UI" "$DIALOG_PATCH"
-  omarchy restart shell
-  echo "AnimWindow installed (menu, PopupCard, KeyboardPanel, ConfirmDialog)."
+  install_shared
+  install_plugins
+  if [[ "${OMARCHY_NO_RESTART:-0}" != "1" ]]; then
+    omarchy restart shell
+  fi
+  echo "AnimWindow + oshelf gradient applied (shared surfaces + installed plugins)."
 }
 
 cmd_uninstall() {
-  revert_for "menu"          "/usr/share/omarchy/shell/plugins/menu/Menu.qml"       "$MENU_MARKER"    "/usr/share/omarchy/shell/plugins/menu" "$MENU_PATCH"
-  revert_for "popup"         "$PACKAGE_UI/PopupCard.qml"                             "$POPUP_MARKER"   "$PACKAGE_UI" "$POPUP_PATCH"
-  revert_for "keyboard panel" "$PACKAGE_UI/KeyboardPanel.qml"                       "$KEYBOARD_MARKER" "$PACKAGE_UI" "$KEYBOARD_PATCH"
-  revert_for "confirm dialog" "$PACKAGE_UI/ConfirmDialog.qml"                       "$DIALOG_MARKER"  "$PACKAGE_UI" "$DIALOG_PATCH"
+  revert_shared
+  revert_plugins
   if component_installed; then
     $ELEVATE rm -f "$LINK"
     $ELEVATE sed -i "/^${REGISTRATION//\//\\/}$/d" "$PACKAGE_QMLDIR"
@@ -144,16 +233,24 @@ cmd_uninstall() {
   else
     echo "component absent"
   fi
-  omarchy restart shell
-  echo "AnimWindow removed."
+  if [[ "${OMARCHY_NO_RESTART:-0}" != "1" ]]; then
+    omarchy restart shell
+  fi
+  echo "AnimWindow + gradient removed."
 }
 
 cmd_status() {
   echo "component: $(component_installed && echo installed || echo absent)"
-  echo "menu patch:          $(patch_state /usr/share/omarchy/shell/plugins/menu/Menu.qml "$MENU_MARKER")"
-  echo "popup patch:         $(patch_state "$PACKAGE_UI/PopupCard.qml" "$POPUP_MARKER")"
-  echo "keyboard panel patch: $(patch_state "$PACKAGE_UI/KeyboardPanel.qml" "$KEYBOARD_MARKER")"
-  echo "confirm dialog patch: $(patch_state "$PACKAGE_UI/ConfirmDialog.qml" "$DIALOG_MARKER")"
+  file_state "$MENU_DIR/Menu.qml" "$MENU_ANIM_MARKER"    | sed 's/^/menu animation:   /'
+  file_state "$PACKAGE_UI/PopupCard.qml" "$POPUP_ANIM_MARKER" | sed 's/^/popup animation:  /'
+  file_state "$PACKAGE_UI/KeyboardPanel.qml" "$KEYBOARD_ANIM_MARKER" | sed 's/^/keyboard anim:    /'
+  file_state "$PACKAGE_UI/ConfirmDialog.qml" "$DIALOG_ANIM_MARKER" | sed 's/^/dialog animation: /'
+  file_state "$MENU_DIR/Menu.qml" "$GRAD_MARKER"         | sed 's/^/menu gradient:    /'
+  file_state "$PACKAGE_UI/PopupCard.qml" "$GRAD_MARKER"  | sed 's/^/popup gradient:   /'
+  file_state "$PACKAGE_UI/KeyboardPanel.qml" "$GRAD_MARKER" | sed 's/^/keyboard gradient:/'
+  file_state "$PACKAGE_UI/ConfirmDialog.qml" "$GRAD_MARKER" | sed 's/^/dialog gradient:  /'
+  file_state "$OSD_DIR/Osd.qml" "$GRAD_MARKER"           | sed 's/^/osd gradient:     /'
+  file_state "$REMINDER_DIR/ReminderFlow.qml" "$GRAD_MARKER" | sed 's/^/reminder gradient:/'
 }
 
 case "${1:-}" in

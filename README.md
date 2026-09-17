@@ -1,19 +1,28 @@
 # omarchy-animwindow
 
-oshelf-style open/close animations (slide + fade + scale) for the Omarchy quickshell — applied dynamically through the shell's shared `qs.Ui` components, so **any** plugin, current or future, that builds on them inherits the animation automatically.
+oshelf-style open/close animations and a matching gradient background for the Omarchy quickshell — applied dynamically through the shell's shared `qs.Ui` components, so **any** plugin, current or future, that builds on them inherits both the animation and the gradient automatically.
 
 ## What it does
 
-The main menu, bar popups (tray, media), the panels (audio, bluetooth, clock, network, weather, ...) and confirm dialogs open with the same smooth animation oshelf uses: content slides in while fading and scaling up, and reverses on close — instead of popping in/out instantly.
+The main menu, bar popups (tray, media), panels (audio, bluetooth, clock, network, weather, …), confirm dialogs, OSD and reminder cards get:
+
+1. **AnimWindow animation** — content slides in while fading and scaling up (and reverses on close), instead of popping in/out instantly.
+2. **Accent-tinted gradient wash** — a subtle top-edge gradient (`Color.accent` at 8.5% opacity fading to transparent), matching the oshelf shelf style, applied to every surface in the shell and to installed third-party plugins.
 
 ```
 omarchy-animwindow status
 
-  component: installed
-  menu patch:          applied
-  popup patch:         applied
-  keyboard panel patch: applied
-  confirm dialog patch: applied
+  component:           installed
+  menu animation:      applied
+  popup animation:     applied
+  keyboard anim:       applied
+  dialog animation:    applied
+  menu gradient:       applied
+  popup gradient:      applied
+  keyboard gradient:   applied
+  dialog gradient:     applied
+  osd gradient:        applied
+  reminder gradient:   applied
 ```
 
 ## Requirements
@@ -23,16 +32,18 @@ omarchy-animwindow status
 
 ## How it works / "dynamic for all plugins"
 
-The animation is a tiny reusable QML component, `AnimWindow`. It is wired into the **shared components** that plugins build their surfaces on, not into individual plugins:
+Both effects are wired into **shared components** that plugins build their surfaces on — not into individual plugins:
 
-| Shared component        | Reads as                                       | Covers                                                            |
-| ----------------------- | ---------------------------------------------- | ----------------------------------------------------------------- |
-| `Ui/PopupCard.qml`      | bar popups                                     | tray, media, osd …                                                |
-| `Ui/KeyboardPanel.qml`  | panels                                         | audio, bluetooth, clock, dropbox, monitor, network, power, tailscale, weather, agents + user plugins |
-| `Ui/ConfirmDialog.qml`  | in-window confirm overlays                     | menu, clipboard, plugin-manager                                   |
-| `plugins/menu/Menu.qml` | the main menu                                  | the main menu itself                                              |
+| Shared component        | Animations | Gradient | Covers |
+| ----------------------- | :--------: | :------: | ------ |
+| `Ui/PopupCard.qml`      | ✓          | ✓        | bar popups — tray, media, island panel … |
+| `Ui/KeyboardPanel.qml`  | ✓          | ✓        | audio, bluetooth, clock, monitor, network, power, tailscale, weather, agents + user plugins |
+| `Ui/ConfirmDialog.qml`  | ✓          | ✓        | in-window confirm overlays — menu, clipboard, plugin-manager |
+| `plugins/menu/Menu.qml` | ✓          | ✓        | the main menu itself |
+| `plugins/osd/Osd.qml`   |            | ✓        | volume/brightness OSD |
+| `plugins/reminders/ReminderFlow.qml` | | ✓ | reminder cards |
 
-Because the patches touch shared components, a plugin installed later does **not** need its own animation code — if it uses `PopupCard`, `KeyboardPanel` or `ConfirmDialog`, it animates out of the box. (Plugins that ship their own bespoke `PanelWindow`s won't inherit; add the `AnimWindow` pattern to them to animate those.)
+Because the patches touch shared components, a plugin installed later does **not** need its own animation or gradient code — if it uses `PopupCard`, `KeyboardPanel` or `ConfirmDialog`, it inherits both automatically. Individual plugins that draw their own cards (plugin-manager, notifications, quicksearch, omarchy-find, massi.menu) are discovered and patched **dynamically** at install time under `patches/plugins/`.
 
 ### Why the patches at all?
 
@@ -40,7 +51,8 @@ The shell only resolves `import qs.Ui` from the package directory (`/usr/share/o
 
 1. a symlink `/usr/share/omarchy/shell/Ui/animwindow.qml` → your user file,
 2. one `qmldir` registration line (`AnimWindow 1.0 animwindow.qml`),
-3. reversible `patch`-based edits that use `AnimWindow` inside the shared components.
+3. reversible `patch`-based edits that use `AnimWindow` and add the gradient in the shared components,
+4. per-plugin gradient patches applied automatically to installed plugins that have their own card surfaces.
 
 Everything the script changes in `/usr/share` is reverted by `uninstall` and safely re-applied by re-running `install` after an `omarchy update` resets the package files.
 
@@ -49,9 +61,9 @@ Everything the script changes in `/usr/share` is reverted by `uninstall` and saf
 1. Put the files where the script expects them (the script reads from your user config, **not** from this repo at runtime):
 
    ```sh
-   mkdir -p ~/.config/omarchy/shell/Ui ~/.config/omarchy/patches ~/.local/bin
+   mkdir -p ~/.config/omarchy/shell/Ui ~/.local/bin
    cp animwindow.qml ~/.config/omarchy/shell/Ui/
-   cp patches/*.patch ~/.config/omarchy/patches/
+   cp -r patches ~/.config/omarchy/
    cp omarchy-animwindow ~/.local/bin/
    chmod +x ~/.local/bin/omarchy-animwindow
    ```
@@ -62,7 +74,7 @@ Everything the script changes in `/usr/share` is reverted by `uninstall` and saf
    ~/.local/bin/omarchy-animwindow install
    ```
 
-   This adds the symlink + registration, applies all four patches, and restarts the shell. The animation is live immediately.
+   This adds the symlink + registration, applies all shared and per-plugin patches, and restarts the shell. Everything is live immediately.
 
 3. Check the new state:
 
@@ -75,18 +87,19 @@ Everything the script changes in `/usr/share` is reverted by `uninstall` and saf
 ```
 omarchy-animwindow {install|uninstall|status}
 
-  install     # add symlink + qmldir + menu + popup + panel + dialog patches, restart shell
+  install     # add symlink + qmldir + all shared + per-plugin patches, restart shell
   uninstall   # revert everything, restart shell
   status      # show which pieces are currently applied
 ```
 
 Environment:
 
-- `SUDO=pkexec ~/.local/bin/omarchy-animwindow install` — use `pkexec` for elevation instead of `sudo`.
+- `SUDO=pkexec omarchy-animwindow install` — use `pkexec` for elevation instead of `sudo`.
+- `OMARCHY_NO_RESTART=1` — skip the `omarchy restart shell` at the end (useful for testing).
 
 After **any** `omarchy update`, re-run `install`; package-file edits are lost on update by design, and the command is idempotent — it only patches what is pristine.
 
-## Customizing
+## Customizing AnimWindow
 
 Edit the defaults in `~/.config/omarchy/shell/Ui/animwindow.qml` (this file in the repo), then re-run `install`:
 
@@ -101,15 +114,15 @@ Or override per instance, e.g. `AnimWindow { id: anim; open: root.open; duration
 
 ## AnimWindow API
 
-| Property     | Type    | Notes                                                          |
-| ------------ | ------- | -------------------------------------------------------------- |
-| `open`       | `bool`  | required; drives the animation direction                       |
-| `openness`   | `real`  | animates `1` when open, `0` when closed (OutCubic)             |
-| `closing`    | `bool`  | read-only; `true` while the close animation runs               |
-| `duration`   | `real`  | open duration, ms (default 260)                                |
-| `closeDuration` | `real` | close duration, ms (default `round(duration * 0.75)`)        |
-| `slideY`     | `real`  | slide distance used by the attached surfaces (default 40)      |
-| `startScale` | `real`  | closed-state scale (default 0.96)                              |
+| Property       | Type   | Notes                                                          |
+| -------------- | ------ | -------------------------------------------------------------- |
+| `open`         | `bool` | required; drives the animation direction                       |
+| `openness`     | `real` | animates `1` when open, `0` when closed (OutCubic)             |
+| `closing`      | `bool` | read-only; `true` while the close animation runs               |
+| `duration`     | `real` | open duration, ms (default 260)                                |
+| `closeDuration`| `real` | close duration, ms (default `round(duration * 0.75)`)          |
+| `slideY`       | `real` | slide distance used by the attached surfaces (default 40)      |
+| `startScale`   | `real` | closed-state scale (default 0.96)                              |
 
 Used in your own component or plugin:
 
@@ -117,16 +130,34 @@ Used in your own component or plugin:
 import qs.Ui
 
 PanelWindow {
-  visible: root.opened || anim.closing   // stay mapped during the close fade
+  visible: root.opened || anim.closing
   AnimWindow { id: anim; open: root.opened }
 
   BorderSurface {
     opacity: anim.openness
-    y: baseY + (1 - anim.openness) * anim.slideY        // slide in from above
+    y: baseY + (1 - anim.openness) * anim.slideY
     scale: anim.startScale + anim.openness * (1 - anim.startScale)
   }
 }
 ```
+
+## Gradient patch format
+
+Each gradient patch (under `patches/gradient/`) inserts a `Rectangle` block right after the surface's `radius:` binding:
+
+```qml
+Rectangle {
+  anchors { top: parent.top; left: parent.left; right: parent.right; margins: 1 }
+  height: Math.min(parent.height, 160)
+  radius: Style.cornerRadius - 1
+  gradient: Gradient {
+    GradientStop { position: 0; color: Util.alpha(Color.accent, 0.085) }
+    GradientStop { position: 1; color: "transparent" }
+  }
+}
+```
+
+The gradient patches overlay the anim-applied state — the installer always applies animation first, then gradient.
 
 ## Uninstall
 
@@ -134,15 +165,17 @@ PanelWindow {
 ~/.local/bin/omarchy-animwindow uninstall
 ```
 
-Reverts all four patches, removes the `animwindow.qml` symlink and its `qmldir` line, and restarts the shell with the stock animations.
+Reverts gradient patches, then animation patches (in that order), removes the `animwindow.qml` symlink and its `qmldir` line, and restarts the shell with the stock visuals.
 
 ## Troubleshooting
 
 - **Shell/menu doesn't open after install** — a QML compile error (e.g. `AnimWindow` unavailable) fails the plugin load. Check `journalctl --user -p err -n 40 --since "1 min ago"`. Symptoms like `"openness" is a read-only property` mean `animwindow.qml` has an incompatible edit: `openness` must **not** be `readonly` (a `Behavior` cannot target a read-only property). Revert the edit and re-install.
 - **`patch` refuses to run / "can't find file to patch"** — the patches use `a/`/`b/` relative paths on purpose; they must be applied with `-p1` and the full target path (the script does this).
 - **`sudo: a terminal is required`** — elevated commands in a non-interactive shell; use `SUDO=pkexec`.
+- **`omarchy update` wipes the effect** — run `install` again; it's idempotent and will only patch pristine files.
 
 ## Notes
 
 - This is a customization layer on top of Omarchy; nothing here modifies Hyprland or GTK config.
 - The patches are generated with `diff -u` against pristine package files and are human-readable — inspect them under `patches/` before applying.
+- Plugin patches under `patches/plugins/` are applied only when the matching plugin directory exists under `~/.config/omarchy/plugins/`.

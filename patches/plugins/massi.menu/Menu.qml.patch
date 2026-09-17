@@ -1,0 +1,21 @@
+--- a/Menu.qml
++++ b/Menu.qml
+@@ -1070,6 +1070,18 @@
+ 
+       MouseArea { anchors.fill: parent; onClicked: {} }
+ 
++      // Accent-tinted top gradient wash, matching oshelf's surface gradient.
++      Rectangle {
++        id: cardGradient
++        anchors { top: parent.top; left: parent.left; right: parent.right; margins: 1 }
++        height: Math.min(parent.height, 160)
++        radius: root.cornerRadius - 1
++        gradient: Gradient {
++          GradientStop { position: 0; color: Util.alpha(Color.accent, 0.085) }
++          GradientStop { position: 1; color: "transparent" }
++        }
++      }
++
+       Item {
+         id: keyCatcher
+         anchors.fill: parent
