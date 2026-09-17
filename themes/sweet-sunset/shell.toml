@@ -8,6 +8,7 @@ icon-large = 18
 [popups]
 border-alpha = 0.7
 border  = "rgba(dcc9a8ff) rgba(dcc9a800) 90deg"
+border-width = 1
 
 [hyprland]
 active-border = "rgba(fbf1c7ee) rgba(1c1b19ee) 45deg"

@@ -8,6 +8,7 @@ icon-large = 18
 [popups]
 border-alpha = 0.7
 border  = "rgba(ebc894ff) rgba(ebc89400) 90deg"
+border-width = 1
 
 [menu]
 background-alpha = 0.9
@@ -35,3 +36,7 @@ scale = 1.1
 scale-with-font = true
 size-horizontal = 30
 popup-row-height = 42
+
+[controls]
+normal-border-width = 1
+normal-border-alpha = 0.7

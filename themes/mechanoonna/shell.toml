@@ -60,7 +60,7 @@ background-alpha = 0.94
 text = "#F0E4C5"
 border = "hyprland.active-border"
 border-alpha = 1.0
-border-width = 2
+border-width = 1
 
 [tooltip]
 background = "#1C1B19"
