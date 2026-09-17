@@ -1,0 +1,57 @@
+# colors.toml
+# Omarchy Theme — Japanese Ink Wash (Dark, warm, dramatic)
+# Colors extracted from Japanese/Chinese ink wash painting
+
+# Base and Background
+background = "#1a1410"
+foreground = "#e8d4b8"
+
+# Selection colors
+selection_foreground = "#efb570"
+selection_background = "#821d0f"
+
+# Accent
+accent = "#c73110"
+cursor = "#e8d4b8"
+
+# ANSI palette (0-15) for terminals
+color0  = "#1a1410"
+color1  = "#6e1811"
+color2  = "#493d2e"
+color3  = "#d56623"
+color4  = "#493d2e"
+color5  = "#821d0f"
+color6  = "#e1763d"
+color7  = "#a89070"
+color8  = "#0d0d0d"
+color9  = "#c73110"
+color10 = "#e1763d"
+color11 = "#efb570"
+color12 = "#493d2e"
+color13 = "#821d0f"
+color14 = "#d56623"
+color15 = "#efb570"
+
+# Surfaces
+surface0 = "#1a1410"
+surface1 = "#0d0d0d"
+surface2 = "#493d2e"
+surface3 = "#a89070"
+
+# Borders (1px, alpha 0.6)
+border = "#821d0f"
+border_alpha = "0.6"
+
+# Text and Icons
+text_primary = "#e8d4b8"
+text_secondary = "#a89070"
+icon = "#e8d4b8"
+
+# Ink wash painting palette
+red_sky = "#6e1811"
+orange_sky = "#e1763d"
+moon_glow = "#efb570"
+tree_dark = "#972411"
+tree_mid = "#c73110"
+ocean_deep = "#493d2e"
+ocean_mid = "#876746"

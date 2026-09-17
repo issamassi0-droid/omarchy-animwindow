@@ -4,7 +4,7 @@ oshelf-style open/close animations and a matching gradient background for the Om
 
 ## What it does
 
-The main menu, bar popups (tray, media), panels (audio, bluetooth, clock, network, weather, …), confirm dialogs, OSD and reminder cards get:
+The main menu, top bar, bar popups (tray, media), panels (audio, bluetooth, clock, network, weather, …), confirm dialogs, OSD and reminder cards get:
 
 1. **AnimWindow animation** — content slides in while fading and scaling up (and reverses on close), instead of popping in/out instantly.
 2. **Accent-tinted gradient wash** — a subtle top-edge gradient (`Color.accent` at 8.5% opacity fading to transparent), matching the oshelf shelf style, applied to every surface in the shell and to installed third-party plugins.
@@ -23,6 +23,7 @@ omarchy-animwindow status
   dialog gradient:     applied
   osd gradient:        applied
   reminder gradient:   applied
+  bar gradient:        applied
 ```
 
 ## Requirements
@@ -42,6 +43,7 @@ Both effects are wired into **shared components** that plugins build their surfa
 | `plugins/menu/Menu.qml` | ✓          | ✓        | the main menu itself |
 | `plugins/osd/Osd.qml`   |            | ✓        | volume/brightness OSD |
 | `plugins/reminders/ReminderFlow.qml` | | ✓ | reminder cards |
+| `plugins/bar/Bar.qml`   |            | ✓        | the top bar itself |
 
 Because the patches touch shared components, a plugin installed later does **not** need its own animation or gradient code — if it uses `PopupCard`, `KeyboardPanel` or `ConfirmDialog`, it inherits both automatically. Individual plugins that draw their own cards (plugin-manager, notifications, quicksearch, omarchy-find, massi.menu) are discovered and patched **dynamically** at install time under `patches/plugins/`.
 
@@ -98,6 +100,31 @@ Environment:
 - `OMARCHY_NO_RESTART=1` — skip the `omarchy restart shell` at the end (useful for testing).
 
 After **any** `omarchy update`, re-run `install`; package-file edits are lost on update by design, and the command is idempotent — it only patches what is pristine.
+
+## Gradient borders per theme (no patching)
+
+The border color can itself be a gradient, matching the background wash, **entirely from `shell.toml`** — the Omarchy border system already renders `"<color1> <color2> <angle>deg"` border tokens on every surface (popup cards, keyboard panels, OSD, menu, the bar has no border but shares the wash). No QML patch is involved for this part.
+
+Set each theme's `[popups]` and `[menu]` `border` token to a vertical fade of the theme's accent/border color:
+
+```toml
+[popups]
+border  = "rgba(ebc894ff) rgba(ebc89400) 90deg"
+border-alpha = 0.7
+
+[menu]
+border = "rgba(ebc894ff) rgba(ebc89400) 90deg"
+```
+
+Apply the change to the running shell (no restart needed):
+
+```sh
+COLORS=$(base64 -w0 ~/.config/omarchy/themes/<theme>/colors.toml)
+SHELL=$(base64 -w0 ~/.config/omarchy/themes/<theme>/shell.toml)
+omarchy-shell shell applyTheme "$COLORS" "$SHELL"
+```
+
+`themes/` in this repo holds the config files (`shell.toml` + `colors.toml`) for the themes that ship these gradient borders:
 
 ## Customizing AnimWindow
 

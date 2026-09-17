@@ -1,0 +1,52 @@
+# colors.toml
+# Omarchy Theme - Japon (90s Japanese Minimal, darken orange/cyan/yellow)
+
+# Base and Background
+background = "#141210"
+foreground = "#d1c8b0"
+
+# Selection colors
+selection_foreground = "#141210"
+selection_background = "#c4682a"
+
+# Accent — darken orange as primary
+accent = "#c4682a"
+cursor = "#d1c8b0"
+
+# ANSI palette (0-15) for terminals (foot, alacritty, kitty, tmux, ...)
+color0  = "#141210"
+color1  = "#c4682a"
+color2  = "#3a8a8a"
+color3  = "#a89030"
+color4  = "#3a8a8a"
+color5  = "#a89030"
+color6  = "#3a8a8a"
+color7  = "#d1c8b0"
+color8  = "#2a2620"
+color9  = "#c4682a"
+color10 = "#3a8a8a"
+color11 = "#a89030"
+color12 = "#3a8a8a"
+color13 = "#a89030"
+color14 = "#3a8a8a"
+color15 = "#e3ded5"
+
+# Surfaces
+surface0 = "#141210"
+surface1 = "#1e1c18"
+surface2 = "#2a2620"
+surface3 = "#7a7060"
+
+# Borders (1px, alpha 0.6)
+border = "#8a7a60"
+border_alpha = "0.6"
+
+# Text and Icons
+text_primary = "#d1c8b0"
+text_secondary = "#7a7060"
+icon = "#d1c8b0"
+
+# 90s Japanese Minimal — desaturated accents
+orange = "#c4682a"
+cyan   = "#3a8a8a"
+yellow = "#a89030"

@@ -47,6 +47,7 @@ declare -r GRAD_MARKER='Util.alpha(Color.accent, 0.085)'
 declare -r MENU_DIR="$PKG_ROOT/plugins/menu"
 declare -r OSD_DIR="$PKG_ROOT/plugins/osd"
 declare -r REMINDER_DIR="$PKG_ROOT/plugins/reminders"
+declare -r BAR_DIR="$PKG_ROOT/plugins/bar"
 declare -r MENU_ANIM_MARKER='AnimWindow { id: anim; open: root.opened && root.rowsLoaded }'
 declare -r POPUP_ANIM_MARKER='AnimWindow { id: anim; open: root.open }'
 declare -r KEYBOARD_ANIM_MARKER='AnimWindow { id: anim; open: root.open }'
@@ -172,11 +173,13 @@ install_shared() {
   install_for "dialog gradient"  "$PACKAGE_UI/ConfirmDialog.qml" "$GRAD_MARKER" "$PACKAGE_UI" "$PATCH_DIR/gradient/confirmdialog-gradient.patch"
   install_for "osd gradient"     "$OSD_DIR/Osd.qml"            "$GRAD_MARKER" "$OSD_DIR" "$PATCH_DIR/gradient/osd-gradient.patch"
   install_for "reminder gradient" "$REMINDER_DIR/ReminderFlow.qml" "$GRAD_MARKER" "$REMINDER_DIR" "$PATCH_DIR/gradient/reminderflow-gradient.patch"
+  install_for "bar gradient"      "$BAR_DIR/Bar.qml"              "$GRAD_MARKER" "$BAR_DIR" "$PATCH_DIR/gradient/bar-gradient.patch"
 }
 
 revert_shared() {
   # reverse order: gradient first, then animation
   revert_for "reminder gradient" "$REMINDER_DIR/ReminderFlow.qml" "$GRAD_MARKER" "$REMINDER_DIR" "$PATCH_DIR/gradient/reminderflow-gradient.patch"
+  revert_for "bar gradient"     "$BAR_DIR/Bar.qml"              "$GRAD_MARKER" "$BAR_DIR" "$PATCH_DIR/gradient/bar-gradient.patch"
   revert_for "osd gradient"     "$OSD_DIR/Osd.qml"            "$GRAD_MARKER" "$OSD_DIR" "$PATCH_DIR/gradient/osd-gradient.patch"
   revert_for "dialog gradient"  "$PACKAGE_UI/ConfirmDialog.qml" "$GRAD_MARKER" "$PACKAGE_UI" "$PATCH_DIR/gradient/confirmdialog-gradient.patch"
   revert_for "keyboard gradient" "$PACKAGE_UI/KeyboardPanel.qml" "$GRAD_MARKER" "$PACKAGE_UI" "$PATCH_DIR/gradient/keyboardpanel-gradient.patch"
@@ -251,6 +254,7 @@ cmd_status() {
   file_state "$PACKAGE_UI/ConfirmDialog.qml" "$GRAD_MARKER" | sed 's/^/dialog gradient:  /'
   file_state "$OSD_DIR/Osd.qml" "$GRAD_MARKER"           | sed 's/^/osd gradient:     /'
   file_state "$REMINDER_DIR/ReminderFlow.qml" "$GRAD_MARKER" | sed 's/^/reminder gradient:/'
+  file_state "$BAR_DIR/Bar.qml" "$GRAD_MARKER"               | sed 's/^/bar gradient:       /'
 }
 
 case "${1:-}" in

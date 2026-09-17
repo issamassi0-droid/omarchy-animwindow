@@ -1,0 +1,37 @@
+[font]
+base-size = 10
+body = 10
+heading = 14
+icon = 14
+icon-large = 18
+
+[popups]
+border-alpha = 0.7
+border  = "rgba(ebc894ff) rgba(ebc89400) 90deg"
+
+[menu]
+background-alpha = 0.9
+border = "rgba(ebc894ff) rgba(ebc89400) 90deg"
+border-width = 2
+border-alpha = 0.9
+selected-background = "#ebc894"
+selected-background-alpha = 0.1
+selected-text = "#ebc894"
+selected-border = "#ebc894"
+selected-border-alpha = 0.3
+selected-border-width = 2
+
+[launcher]
+border-alpha = 0.7
+
+[notifications]
+border-alpha = 0.7
+
+[tooltip]
+border-alpha = 0.7
+
+[spacing]
+scale = 1.1
+scale-with-font = true
+size-horizontal = 30
+popup-row-height = 42

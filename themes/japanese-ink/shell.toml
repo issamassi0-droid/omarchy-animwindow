@@ -1,0 +1,143 @@
+# Omarchy shell surfaces for Japanese Ink Wash theme
+
+[bar]
+background       = "#1a1410"
+background-alpha = 0.98
+text             = "#e8d4b8"
+active           = "#c73110"
+scale-with-font  = true
+size-horizontal  = 26
+size-vertical    = 28
+icon-font        = 18
+
+[hyprland]
+active-border            = "#c73110"
+active-border-foreground = "#e8d4b8"
+
+[controls]
+normal-color        = "#c73110"
+normal-fill-alpha   = 0.04
+normal-border       = "#c73110"
+normal-border-width = 1
+normal-border-alpha = 0.7
+
+hover-cursor-color        = "#e8d4b8"
+hover-cursor-fill-alpha   = 0.08
+hover-cursor-border       = "#c73110"
+hover-cursor-border-width = 1
+hover-cursor-border-alpha = 0.7
+
+focus-color        = "#e8d4b8"
+focus-fill-alpha   = 0.08
+focus-border       = "#e8d4b8"
+focus-border-width = 1
+focus-border-alpha = 0.25
+
+selected-color        = "#c73110"
+selected-fill-alpha   = 0.2
+selected-border       = "#c73110"
+selected-border-width = 1
+selected-border-alpha = 0.7
+
+pressed-fill-alpha   = 0.22
+selection-fill-alpha = 0.35
+
+[spacing]
+scale = 1.10
+scale-with-font = true
+
+[font]
+base-size = 12
+heading = 14
+icon-large = 18
+
+[popups]
+background          = "#1a1410"
+background-alpha    = 0.98
+text                = "#a09e96"
+border              = "rgba(c73110ff) rgba(c7311000) 90deg"
+border-alpha        = 0.98
+border-width        = 1
+
+[tooltip]
+background       = "#1a1410"
+background-alpha = 0.95
+text             = "#e8d4b8"
+border           = "#c73110"
+border-alpha     = 0.95
+border-width     = 1.5
+
+[notifications]
+background       = "#1a1410"
+background-alpha = 0.95
+text             = "#e8d4b8"
+border           = "#c73110"
+border-alpha     = 0.95
+border-width     = 1.5
+countdown        = "#3a8a8a"
+
+[launcher]
+background                = "#1a1410"
+background-alpha          = 0.95
+text                      = "#e8d4b8"
+border                    = "#c73110"
+border-alpha              = 0.95
+scrim                     = "#1a1410"
+scrim-alpha               = 0.5
+selected-background       = "#e8d4b8"
+selected-background-alpha = 0.08
+selected-text             = "#c73110"
+selected-border           = "#c73110"
+selected-border-alpha     = 0.25
+
+[menu]
+border = "rgba(3a8a8aff) rgba(3a8a8a00) 90deg"
+border-alpha = 0.95
+border-width = 1.5
+background = "#1a1410"
+background-alpha = 0.95
+selected-background = "#c73110"
+selected-background-alpha = 0.1
+selected-border = "#c73110"
+selected-border-alpha = 0.3
+selected-border-width = 1.5
+selected-text = "#c73110"
+scrim = "#1a1410"
+scrim-alpha = 0.0
+
+[polkit]
+background       = "#1a1410"
+background-alpha = 0.92
+text             = "#e8d4b8"
+text-error       = "#c73110"
+border           = "#c73110"
+border-error     = "#c73110"
+border-alpha     = 0.95
+scrim            = "#1a1410"
+scrim-alpha      = 0.5
+accent           = "#3a8a8a"
+
+[lock]
+background       = "#1a1410"
+background-alpha = 0.95
+text             = "#e8d4b8"
+placeholder      = "#a89070"
+text-error       = "#c73110"
+border           = "#c73110"
+border-active    = "#c73110"
+border-error     = "#c73110"
+border-alpha     = 0.95
+selection        = "#3a8a8a"
+selection-alpha  = 0.45
+
+[image-picker]
+scrim                   = "#1a1410"
+scrim-alpha             = 0.5
+text                    = "#e8d4b8"
+selected-border         = "#c73110"
+selected-border-alpha   = 1.0
+unselected-border       = "#e8d4b8"
+unselected-border-alpha = 0.28
+
+[workspace]
+active = "#c73110"

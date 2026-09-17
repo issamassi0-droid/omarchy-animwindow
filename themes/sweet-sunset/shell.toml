@@ -1,0 +1,46 @@
+[font]
+base-size = 10
+body = 10
+heading = 14
+icon = 14
+icon-large = 18
+
+[popups]
+border-alpha = 0.7
+border  = "rgba(dcc9a8ff) rgba(dcc9a800) 90deg"
+
+[hyprland]
+active-border = "rgba(fbf1c7ee) rgba(1c1b19ee) 45deg"
+active-border-foreground = "#d1c8b0"
+
+[menu]
+background = "#1C1B19"
+background-alpha = 0.88
+text = "#A89984"
+border = "rgba(fbf1c7ff) rgba(fbf1c700) 90deg"
+border-alpha = 0.40
+border-width = 2
+scrim = "#1C1B19"
+scrim-alpha = 0.0
+selected-background = "#FBF1C7"
+selected-background-alpha = 0.18
+selected-text = "#A89984"
+selected-border = "#FBF1C7"
+selected-border-alpha = 0.30
+selected-border-width = 2
+
+
+[launcher]
+border-alpha = 0.7
+
+[notifications]
+border-alpha = 0.7
+
+[tooltip]
+border-alpha = 0.7
+
+[spacing]
+scale = 1.1
+scale-with-font = true
+size-horizontal = 30
+popup-row-height = 42
